@@ -14,6 +14,76 @@ the system that produced it.
 
 ---
 
+## The intent — why this exists
+
+> **Goal: make a natural-language finance answer something you can *act on without re-checking* — by
+> shipping the proof of correctness with the number itself.**
+
+Plenty of chatbots already answer questions over financial data. They are not the problem. The
+problem is that **none of them can prove a *specific* answer is correct at the moment they give it to
+you** — and in regulated finance that proof *is* the job. A "95%-accurate" assistant means 5% of a
+board deck or a regulatory filing is wrong and you don't know which 5%; the cost of that 5% is a
+restatement or an audit finding, not a shrug. So today finance teams either distrust the assistant or
+pay an analyst to re-check every number — which destroys the value of self-service.
+
+Tessera's intent is to remove that blocker: turn an answer into a **verified, attested artifact** so
+finance and audit can actually sign off on AI-driven self-service.
+
+## Why this isn't just another chatbot
+
+|  | Generic LLM copilot | Text-to-SQL assistant *(Cortex Analyst, Genie, Wren, Vanna)* | **Tessera** |
+|---|---|---|---|
+| Runs real SQL on governed data | ✗ (RAG / docs) | ✓ | ✓ |
+| Proves *this* answer correct, at runtime | ✗ | ✗ — trust is offline/statistical | **✓ independent verdict per answer** |
+| Catches *named* finance mistakes (intercompany, FX, grain…) | ✗ | ✗ | **✓ 8 enumerable failure classes** |
+| Auditor-verifiable evidence trail | ✗ | ✗ | **✓ signed receipt, verified offline** |
+| Fails honest (no number vs. a confident wrong one) | ✗ | partial | **✓ `WARN`, never fabricates** |
+| Runs fully air-gapped (regulated reality) | rarely | rarely | **✓** |
+
+The differentiator is **structural, not cosmetic**: an *independent* verifier (re-running the model's
+own SQL to "check" it is circular and worthless), a *per-answer runtime* verdict, and a *cryptographic
+receipt*. That combination is the gap every incumbent leaves open.
+
+**What it is honestly not.** Tessera proves a number *reconciles to the **certified** metric
+definition* — not metaphysical truth. If the semantic layer is defined wrong, agent and verifier agree
+on a wrong-but-consistent number; governing those definitions is a human responsibility (and building
+them with the customer is the real consulting work). It is built for **enumerable, structured
+analytics** (GL / financial metrics), not open-ended document reasoning — the failure-class approach
+works precisely because finance math has *nameable* ways to be wrong.
+
+---
+
+## See it in 90 seconds (the demo)
+
+The story is *trust*, told in four beats — the third is the one that matters.
+
+```bash
+# 1) A clean answer — verified PASS, with the SQL that produced it.
+tessera ask "What was consolidated net revenue in 2025?"
+#   → PASS  5,293,985.00 USD   (reconciles to the certified metric)
+
+# 2) THE HERO MOMENT — a wrong number, caught by name, before it reaches a report.
+tessera ask "What was consolidated net revenue in 2025?" --inject intercompany_double_count
+#   → FAIL  claimed 5,439,001.00 vs certified 5,293,985.00 (off by 145,016.00)
+#           [intercompany_double_count] the query forgot to eliminate intercompany on consolidation
+#   This is the moment a typical assistant would have shown 5,439,001 as fact.
+
+# 3) The receipt — an auditor verifies the answer offline, without trusting Tessera.
+tessera ask "What was consolidated net revenue in 2025?" --receipt r.json && tessera verify r.json
+#   → VALID   (tamper with any field and it goes INVALID)
+
+# 4) The economics — cheap model first, escalate only when the verifier isn't satisfied.
+tessera bench
+#   → 30.5% cheaper than always-strong, at 100% accuracy
+```
+
+The whole pitch in one line: **the assistant answers, an *independent* verifier decides whether to
+trust it, and a signed receipt lets someone else check the work later.** (Full per-feature commands are
+below; the same flow runs in the [web UI](web/), over MCP (`tessera mcp`), and over
+[REST](deploy/README.md).)
+
+---
+
 ## How it works
 
 1. **Ask** — a natural-language question is planned into SQL and run against a **read-only** role on
