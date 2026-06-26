@@ -77,8 +77,14 @@ independent verifier is not satisfied), building on
   re-checks it **offline** — so an auditor trusts the receipt, not the assistant. Built to the
   security non-negotiables: no default secret (key resolves `env → ~/.config/tessera/signing_key
   (0600) → create → fail closed`), constant-time signer-identity check, tamper-evident binding.
+- **Phase 5 ✅** — **cost-cascade routing** (`tessera.routing`). Try the cheapest model tier first;
+  accept its answer **only if the independent verifier passes it**; escalate to a pricier tier only
+  when it doesn't. The verifier is what makes cheap-first safe. On a mixed question set the cascade
+  saves **~30% at 100% accuracy** vs always using the strong model. Builds on
+  [*Quantum-Enhanced LLM Cascade Routing* (QAOA)](https://doi.org/10.5281/zenodo.19253980), which
+  chooses the cascade; this executes it and measures the saving.
 
-Next: cost-cascade routing (Phase 5), deploy both targets (Phase 6), the minimal UI (Phase 7).
+Next: deploy both targets (Phase 6 — Vercel + Cloud Run), the minimal UI (Phase 7).
 
 ## Try the warehouse
 
@@ -157,6 +163,23 @@ so always pin the key out-of-band. Residual risks no signature removes: a wrong 
 definition* (governance), replay of a genuine receipt (consumers should track `receipt_id`),
 dependencies / OS, and questions outside the modelled metrics (which return `WARN`, not false
 confidence).
+
+## Spend less without trusting the cheap model
+
+```bash
+tessera ask "net revenue for ACME Brazil in 2025" --route   # cheap tier passes verification → cheap win
+tessera ask "What was consolidated net revenue in 2025?" --route  # cheap fails → escalate to strong
+tessera bench                                                # cost vs always-strong, across a mix
+```
+```
+  accuracy: 100%   cheap-wins: 3/6   escalations: 3/6
+  cascade cost $0.029910  vs always-strong $0.043040  →  30.5% saved, with no loss of correctness.
+```
+
+Cheap-first is only safe because the verifier is the gate: a cheap answer is accepted *only* when the
+orthogonal recompute passes it, so the cascade trades cost for nothing. (Costs are estimated in USD
+from token counts; in deployment they are real per-token prices. The cross-workload optimization that
+*chooses* the cascade is the QAOA cost-routing work above.)
 
 ## Develop
 

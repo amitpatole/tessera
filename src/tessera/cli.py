@@ -71,7 +71,37 @@ def _verify(path: str, expect_key: str | None) -> int:
     return 0 if result.valid else 1
 
 
-def _ask(question: str, seed: int, db: str | None, inject: str | None, receipt_path: str | None) -> int:
+def _route_view(result) -> None:
+    print(f"  answer:  {result.answer}")
+    print(f"  verdict: {result.final_verdict.upper()}  (accepted by tier: {result.accepted_tier})")
+    for a in result.attempts:
+        print(f"    · {a.tier:<6} → {a.verdict.upper():<4}  ~{a.est_tokens} tok  ${a.cost_usd:.6f}")
+    print(f"  escalations: {result.escalations}   total: ${result.total_cost_usd:.6f}   "
+          f"vs always-strong ${result.baseline_cost_usd:.6f}   saved ${result.saved_usd:.6f}")
+
+
+def _bench(seed: int) -> int:
+    from .routing import run_benchmark
+
+    bench = run_benchmark(seed=seed)
+    print(f"Cost-cascade benchmark ({bench.n} questions, seed={seed})\n")
+    for r in bench.results:
+        path = " → ".join(f"{a.tier}:{a.verdict}" for a in r.attempts)
+        tag = "cheap-win" if r.escalations == 0 else f"escalated×{r.escalations}"
+        print(f"  {r.final_verdict.upper():<4} {tag:<12} ${r.total_cost_usd:.6f}  [{path}]  {r.question}")
+    print(
+        f"\n  accuracy: {bench.accuracy_pct:.0f}%   cheap-wins: {bench.cheap_wins}/{bench.n}   "
+        f"escalations: {bench.escalations}/{bench.n}"
+    )
+    print(
+        f"  cascade cost ${bench.total_cost_usd:.6f}  vs always-strong ${bench.baseline_cost_usd:.6f}"
+        f"  →  {bench.pct_saved:.1f}% saved, with no loss of correctness."
+    )
+    return 0
+
+
+def _ask(question: str, seed: int, db: str | None, inject: str | None, receipt_path: str | None,
+         route: bool) -> int:
     from .agent.resolver import ResolutionError, resolve_question
     from .agent.sql import execute_metric
     from .contract import FailureClass
@@ -90,6 +120,14 @@ def _ask(question: str, seed: int, db: str | None, inject: str | None, receipt_p
         except ResolutionError as exc:
             print(f"  verdict: WARN  (outside the certified semantic layer: {exc})")
             print("  no number returned — Tessera will not guess.")
+            return 0
+
+        if route:
+            from .routing import cascade, default_tiers
+
+            routed = cascade(question=question, metric_name=spec.metric, scope=spec.scope,
+                             conn=conn, warehouse=wh, registry=metrics, tiers=default_tiers())
+            _route_view(routed)
             return 0
 
         if inject:
@@ -164,6 +202,11 @@ def main(argv: list[str] | None = None) -> int:
         help="Demo: inject a specific SQL mistake and watch the verifier catch it.",
     )
     ask.add_argument("--receipt", default=None, help="Write a signed receipt to this path.")
+    ask.add_argument("--route", action="store_true",
+                     help="Run the cost cascade: cheap tier first, escalate only if it fails verification.")
+
+    bench = sub.add_parser("bench", help="Benchmark the cost cascade vs an always-strong baseline.")
+    bench.add_argument("--seed", type=int, default=20260626, help="Generator seed.")
 
     sub.add_parser("key", help="Show the signing public key (share it so auditors can pin it).")
 
@@ -187,7 +230,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "doctor":
         return _doctor()
     if args.command == "ask":
-        return _ask(args.question, args.seed, args.db, args.inject, args.receipt)
+        return _ask(args.question, args.seed, args.db, args.inject, args.receipt, args.route)
+    if args.command == "bench":
+        return _bench(args.seed)
     if args.command == "key":
         return _key()
     if args.command == "verify":
