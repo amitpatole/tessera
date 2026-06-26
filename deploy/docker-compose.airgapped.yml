@@ -1,0 +1,32 @@
+# Air-gapped target: the Tessera API + a local Ollama, with NO external connectivity.
+#
+# The `backplane` network is `internal: true` — containers on it have no route to the internet, so
+# inference is served entirely by the on-box Ollama. The API is published only on the host loopback.
+# Bring up with:  TESSERA_API_TOKEN=$(openssl rand -hex 16) docker compose -f docker-compose.airgapped.yml up --build
+services:
+  api:
+    build: ..
+    image: tessera:airgapped
+    environment:
+      TESSERA_BIND_HOST: 0.0.0.0
+      TESSERA_API_TOKEN: ${TESSERA_API_TOKEN:?set a non-empty API token}
+      TESSERA_SIGNING_KEY: ${TESSERA_SIGNING_KEY:-}
+      PORT: 8080
+    ports:
+      - "127.0.0.1:8080:8080"   # reachable only from the host, never the network
+    networks: [edge, backplane]
+    depends_on: [ollama]
+
+  ollama:
+    image: ollama/ollama:latest
+    networks: [backplane]       # internal only — no internet egress
+    volumes:
+      - ollama:/root/.ollama
+
+networks:
+  edge: {}
+  backplane:
+    internal: true
+
+volumes:
+  ollama: {}

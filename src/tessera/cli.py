@@ -8,6 +8,7 @@ optional deps stay lazy-imported; the dataset path needs only the light base (py
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 
 from . import __version__
@@ -78,6 +79,29 @@ def _route_view(result) -> None:
         print(f"    · {a.tier:<6} → {a.verdict.upper():<4}  ~{a.est_tokens} tok  ${a.cost_usd:.6f}")
     print(f"  escalations: {result.escalations}   total: ${result.total_cost_usd:.6f}   "
           f"vs always-strong ${result.baseline_cost_usd:.6f}   saved ${result.saved_usd:.6f}")
+
+
+def _serve(host: str, port: int, seed: int) -> int:
+    try:
+        import uvicorn
+
+        from .api import create_app
+    except ImportError:
+        print("serving needs the 'api' extra: pip install 'tessera-analytics[api]'", file=sys.stderr)
+        return 1
+    from .api.security import BindSecurityError
+
+    try:
+        app = create_app(seed=seed, host=host)
+    except BindSecurityError as exc:
+        print(f"tessera: {exc}", file=sys.stderr)
+        return 2
+    from .api.security import is_loopback
+
+    auth = "optional (loopback)" if is_loopback(host) else "required (token)"
+    print(f"tessera API on http://{host}:{port}  (auth: {auth})")
+    uvicorn.run(app, host=host, port=port, log_level="info")
+    return 0
 
 
 def _bench(seed: int) -> int:
@@ -208,6 +232,13 @@ def main(argv: list[str] | None = None) -> int:
     bench = sub.add_parser("bench", help="Benchmark the cost cascade vs an always-strong baseline.")
     bench.add_argument("--seed", type=int, default=20260626, help="Generator seed.")
 
+    serve = sub.add_parser("serve", help="Run the REST API (needs the 'api' extra).")
+    serve.add_argument("--host", default=os.environ.get("TESSERA_BIND_HOST", "127.0.0.1"),
+                       help="Bind host. Non-loopback requires TESSERA_API_TOKEN (fail closed).")
+    serve.add_argument("--port", type=int, default=int(os.environ.get("PORT", "8080")),
+                       help="Bind port (default $PORT or 8080).")
+    serve.add_argument("--seed", type=int, default=20260626, help="Generator seed.")
+
     sub.add_parser("key", help="Show the signing public key (share it so auditors can pin it).")
 
     verify = sub.add_parser("verify", help="Offline-verify a signed receipt.")
@@ -233,6 +264,8 @@ def main(argv: list[str] | None = None) -> int:
         return _ask(args.question, args.seed, args.db, args.inject, args.receipt, args.route)
     if args.command == "bench":
         return _bench(args.seed)
+    if args.command == "serve":
+        return _serve(args.host, args.port, args.seed)
     if args.command == "key":
         return _key()
     if args.command == "verify":

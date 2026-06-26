@@ -83,8 +83,13 @@ independent verifier is not satisfied), building on
   saves **~30% at 100% accuracy** vs always using the strong model. Builds on
   [*Quantum-Enhanced LLM Cascade Routing* (QAOA)](https://doi.org/10.5281/zenodo.19253980), which
   chooses the cascade; this executes it and measures the saving.
+- **Phase 6 ✅** (deployable) — the **REST API** (`tessera.api`) over the verified pipeline, plus a
+  container and both deploy targets. Fail-closed posture: a non-loopback bind without
+  `TESSERA_API_TOKEN` refuses to start; with a token, every request needs a constant-time-checked
+  bearer; the API takes natural-language questions, never SQL. One image runs **Cloud Run** (cloud
+  demo) or fully **air-gapped** (Compose/k3s + Ollama, no egress). See [`deploy/`](deploy/README.md).
 
-Next: deploy both targets (Phase 6 — Vercel + Cloud Run), the minimal UI (Phase 7).
+Next: the minimal React/Next UI + MCP server (Phase 7).
 
 ## Try the warehouse
 
@@ -180,6 +185,20 @@ Cheap-first is only safe because the verifier is the gate: a cheap answer is acc
 orthogonal recompute passes it, so the cascade trades cost for nothing. (Costs are estimated in USD
 from token counts; in deployment they are real per-token prices. The cross-workload optimization that
 *chooses* the cascade is the QAOA cost-routing work above.)
+
+## Run the API
+
+```bash
+pip install -e ".[api,crypto]"
+tessera serve                       # http://127.0.0.1:8080 — loopback is zero-config
+curl -s localhost:8080/health
+curl -s -X POST localhost:8080/ask -H 'Content-Type: application/json' \
+  -d '{"question":"What was consolidated net revenue in 2025?","sign":true}'
+```
+
+Binding a routable interface **fails closed** without a token: `TESSERA_API_TOKEN=$(openssl rand -hex
+16) tessera serve --host 0.0.0.0` then send `Authorization: Bearer <token>`. One image runs Cloud Run
+or fully air-gapped — see [`deploy/README.md`](deploy/README.md).
 
 ## Develop
 

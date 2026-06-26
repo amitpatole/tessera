@@ -15,6 +15,7 @@ from decimal import Decimal
 from agentsensory import Verdict
 from pydantic import BaseModel
 
+from ..contract import LedgerReport
 from ..ledger.controls import Scope
 from ..ledger.schema import Warehouse
 from ..semantic.loader import Metric
@@ -49,6 +50,8 @@ class RoutingResult(BaseModel):
     total_cost_usd: float
     # The cost had we gone straight to the most expensive tier (the no-cascade baseline).
     baseline_cost_usd: float
+    # The verifier's report for the accepted (or last-tried) candidate.
+    final_report: LedgerReport
 
     @property
     def saved_usd(self) -> float:
@@ -105,4 +108,5 @@ def cascade(
         escalations=max(0, len(attempts) - 1),
         total_cost_usd=total_cost,
         baseline_cost_usd=baseline_cost,
+        final_report=final,
     )
