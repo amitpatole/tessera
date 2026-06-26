@@ -55,9 +55,36 @@ independent verifier is not satisfied), building on
 
 ## Status
 
-Phase 0 — repository scaffold and the shared-contract foundation. The warehouse generator, the
-independent verifier, the signed-receipt path, the API, and the minimal UI land in subsequent
-phases. Nothing here is "done" until it returns a verdict.
+- **Phase 0 ✅** — repository scaffold and the shared-contract foundation (the 8 `FailureClass`
+  values, `LedgerIssue`, `LedgerReport`).
+- **Phase 1 ✅** — the governed General-Ledger warehouse. A deterministic, balanced, multi-entity,
+  multi-currency ledger (`tessera.ledger`) plus the certified-metric semantic layer
+  (`tessera.semantic`). The books *balance* — `tessera dataset verify` runs the structural invariants
+  and returns a PASS/FAIL verdict, and the orthogonal metric rollup agrees with direct SQL.
+
+Next: the NL→SQL agent (Phase 2) and the independent verifier (Phase 3). Nothing is "done" until it
+returns a verdict.
+
+## Try the warehouse
+
+```bash
+pip install -e ".[dev]"
+tessera dataset verify          # the Phase 1 verdict: do the books balance?
+tessera dataset build --out tessera.db
+sqlite3 tessera.db "SELECT name FROM sqlite_master WHERE type='table';"
+```
+
+`dataset verify` prints, for the seeded ledger:
+
+```
+  [PASS] account_mapping             all accounts map to a statement line with a consistent normal balance
+  [PASS] entry_balanced              all 1425 entries balance
+  [PASS] trial_balance_per_entity    posted trial balance balances for every entity
+  [PASS] trial_balance_consolidated  consolidated posted debits == credits == 16876188.60
+  [PASS] accounting_equation         Assets == Liabilities + Equity + Net income (statements roll up)
+
+verdict: PASS — the books are real
+```
 
 ## Develop
 

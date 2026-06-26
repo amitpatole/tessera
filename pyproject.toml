@@ -24,6 +24,7 @@ classifiers = [
 dependencies = [
     "agentsensory>=0.1",
     "pydantic>=2.6",
+    "pyyaml>=6.0",
 ]
 
 [project.optional-dependencies]

@@ -1,0 +1,57 @@
+# Certified metrics — the governance contract for what each business term is allowed to mean.
+# Each base metric pins: which accounts (by statement line), which natural sign, which entry
+# statuses count, the period grain (flow vs as-of balance), and whether intercompany is eliminated
+# on consolidation. Derived metrics are linear combinations of other certified metrics.
+#
+# This file is BOTH the model's grounding and the verifier's source of truth. Changing it changes
+# the definition of the number an auditor will check — treat it like code.
+
+net_revenue:
+  description: >
+    Total revenue earned. At a single entity, includes intercompany revenue; on a consolidated
+    view, intercompany revenue is eliminated so the group is not credited for selling to itself.
+  statement_lines: [revenue]
+  sign: credit
+  status_filter: [posted]
+  period_semantics: flow
+  eliminate_intercompany: true
+  currency: functional
+
+cogs:
+  description: Cost of goods sold.
+  statement_lines: [cogs]
+  sign: debit
+  status_filter: [posted]
+  period_semantics: flow
+  eliminate_intercompany: true
+  currency: functional
+
+operating_expense:
+  description: Operating expenses (SG&A), excluding depreciation and interest.
+  statement_lines: [operating_expenses]
+  sign: debit
+  status_filter: [posted]
+  period_semantics: flow
+  eliminate_intercompany: true
+  currency: functional
+
+ebitda:
+  description: Earnings before interest, taxes, depreciation and amortization.
+  components:
+    - metric: net_revenue
+      coefficient: 1
+    - metric: cogs
+      coefficient: -1
+    - metric: operating_expense
+      coefficient: -1
+
+cash_balance:
+  description: >
+    Cash on hand as of period end. A point-in-time balance (cumulative), not a period flow — asking
+    "cash in Q3" means the balance at the end of Q3, not the quarter's cash movement.
+  statement_lines: [cash]
+  sign: debit
+  status_filter: [posted]
+  period_semantics: balance
+  eliminate_intercompany: false
+  currency: functional
