@@ -72,9 +72,13 @@ independent verifier is not satisfied), building on
   and on a divergence **diagnoses which of the 8 failure classes** produced the wrong number, showing
   both figures. Verified: it catches **8/8** injected failure classes and passes correct answers with
   no false positives.
+- **Phase 4 ✅** — the **signed receipt** (`tessera.receipt`). The verdict + executed SQL + answer +
+  issue digest are bound under an **Ed25519** signature from a per-install key, and `tessera verify`
+  re-checks it **offline** — so an auditor trusts the receipt, not the assistant. Built to the
+  security non-negotiables: no default secret (key resolves `env → ~/.config/tessera/signing_key
+  (0600) → create → fail closed`), constant-time signer-identity check, tamper-evident binding.
 
-Next: the **signed receipt** (Phase 4) — bind the verdict + SQL + answer into an Ed25519 receipt an
-auditor can verify offline. Nothing is "done" until it returns a verdict.
+Next: cost-cascade routing (Phase 5), deploy both targets (Phase 6), the minimal UI (Phase 7).
 
 ## Try the warehouse
 
@@ -134,6 +138,25 @@ The injected SQL is a genuinely different query (it drops the `is_intercompany =
 verifier recomputes the truth orthogonally and names the mistake. The eight classes: `wrong_period_grain`,
 `missing_entity_filter`, `debit_credit_sign_flip`, `intercompany_double_count`, `draft_or_reversed_entries`,
 `wrong_statement_line_rollup`, `fx_mixing`, `asof_vs_ptd`.
+
+## Sign and verify a receipt
+
+```bash
+tessera ask "What was consolidated net revenue in 2025?" --receipt receipt.json
+tessera verify receipt.json --expect-key <public_key_from: tessera key>
+```
+
+`verify` is offline and needs no warehouse access. Tampering with any bound field (answer, verdict,
+SQL, …) invalidates the signature.
+
+**Trust model (honest).** A receipt proves *"these independent checks ran and this number reconciles
+to the certified metric, signed by this key"* — not metaphysical truth. Verifying **with** a pinned
+key (`--expect-key`) gives authenticity (a specific signer produced it). Verifying **without** one
+gives integrity only (the bytes are internally consistent) — anyone can mint a self-signed receipt,
+so always pin the key out-of-band. Residual risks no signature removes: a wrong *certified metric
+definition* (governance), replay of a genuine receipt (consumers should track `receipt_id`),
+dependencies / OS, and questions outside the modelled metrics (which return `WARN`, not false
+confidence).
 
 ## Develop
 

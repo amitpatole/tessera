@@ -32,7 +32,8 @@ dependencies = [
 api = ["fastapi>=0.115", "uvicorn[standard]>=0.30", "psycopg[binary]>=3.2"]
 llm = ["langgraph>=0.2", "langchain-core>=0.3"]
 crypto = ["cryptography>=43"]
-dev = ["pytest>=8.0", "ruff>=0.5", "mypy>=1.10"]
+# dev pulls the runtime extras the gate must exercise (signing needs cryptography) so CI tests them.
+dev = ["pytest>=8.0", "ruff>=0.5", "mypy>=1.10", "cryptography>=43"]
 
 [project.scripts]
 tessera = "tessera.cli:main"

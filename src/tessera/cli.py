@@ -43,7 +43,35 @@ def _dataset_build(out: str, seed: int) -> int:
     return 0
 
 
-def _ask(question: str, seed: int, db: str | None, inject: str | None) -> int:
+def _key() -> int:
+    from .receipt import load_or_create_signing_key, public_key_hex
+    from .receipt.keys import key_id, key_path
+
+    priv = load_or_create_signing_key()
+    pub = public_key_hex(priv)
+    print(f"key_id:     {key_id(bytes.fromhex(pub))}")
+    print(f"public_key: {pub}")
+    print(f"key_file:   {key_path()}")
+    print("\nShare the public key with an auditor so they can pin it: tessera verify <receipt> --expect-key <public_key>")
+    return 0
+
+
+def _verify(path: str, expect_key: str | None) -> int:
+    from .receipt import Receipt, verify_receipt
+
+    receipt = Receipt.model_validate_json(open(path, encoding="utf-8").read())
+    result = verify_receipt(receipt, expected_public_key=expect_key)
+    mark = "VALID" if result.valid else "INVALID"
+    print(f"  [{mark}] {result.reason}")
+    print(f"  attested verdict: {result.verdict.upper()}   signer key_id: {result.key_id}")
+    print(f"  question: {receipt.payload.question}")
+    print(f"  answer:   {receipt.payload.answer}")
+    if not result.authenticity_checked:
+        print("  (signer identity not pinned — pass --expect-key <public_key> to assert who signed it)")
+    return 0 if result.valid else 1
+
+
+def _ask(question: str, seed: int, db: str | None, inject: str | None, receipt_path: str | None) -> int:
     from .agent.resolver import ResolutionError, resolve_question
     from .agent.sql import execute_metric
     from .contract import FailureClass
@@ -89,6 +117,15 @@ def _ask(question: str, seed: int, db: str | None, inject: str | None) -> int:
         print("\n  verified SQL:")
         for line in report.executed_sql.splitlines():
             print(f"    {line}")
+
+    if receipt_path:
+        from .receipt import sign_report
+
+        signed = sign_report(report, metric_name=spec.metric, scope=spec.scope, dataset_seed=seed)
+        with open(receipt_path, "w", encoding="utf-8") as fh:
+            fh.write(signed.model_dump_json(indent=2))
+        print(f"\n  signed receipt → {receipt_path}  (key_id {signed.key_id})")
+        print(f"  verify it offline:  tessera verify {receipt_path}")
     return 0
 
 
@@ -126,6 +163,13 @@ def main(argv: list[str] | None = None) -> int:
         choices=[fc.value for fc in FailureClass if fc is not FailureClass.OTHER],
         help="Demo: inject a specific SQL mistake and watch the verifier catch it.",
     )
+    ask.add_argument("--receipt", default=None, help="Write a signed receipt to this path.")
+
+    sub.add_parser("key", help="Show the signing public key (share it so auditors can pin it).")
+
+    verify = sub.add_parser("verify", help="Offline-verify a signed receipt.")
+    verify.add_argument("receipt", help="Path to a receipt JSON file.")
+    verify.add_argument("--expect-key", default=None, help="Assert the signer's public key (hex).")
 
     ds = sub.add_parser("dataset", help="Build or verify the governed GL warehouse.")
     ds_sub = ds.add_subparsers(dest="action")
@@ -143,7 +187,11 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "doctor":
         return _doctor()
     if args.command == "ask":
-        return _ask(args.question, args.seed, args.db, args.inject)
+        return _ask(args.question, args.seed, args.db, args.inject, args.receipt)
+    if args.command == "key":
+        return _key()
+    if args.command == "verify":
+        return _verify(args.receipt, args.expect_key)
     if args.command == "dataset":
         if args.action == "build":
             return _dataset_build(args.out, args.seed)
