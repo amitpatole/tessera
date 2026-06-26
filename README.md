@@ -61,9 +61,15 @@ independent verifier is not satisfied), building on
   multi-currency ledger (`tessera.ledger`) plus the certified-metric semantic layer
   (`tessera.semantic`). The books *balance* — `tessera dataset verify` runs the structural invariants
   and returns a PASS/FAIL verdict, and the orthogonal metric rollup agrees with direct SQL.
+- **Phase 2 ✅** — the NL→SQL agent (`tessera.agent`). A plain-English question resolves to a
+  *certified* metric + scope, generates **parameterized** SQL (structure from the trusted semantic
+  layer, values bound as params — never string-built), executes it against the read-only warehouse,
+  and returns the number with the SQL. The answer comes back **`WARN` / unverified on purpose**: the
+  agent answers, it does not certify. A question outside the semantic layer returns an honest `WARN`,
+  never a guessed number.
 
-Next: the NL→SQL agent (Phase 2) and the independent verifier (Phase 3). Nothing is "done" until it
-returns a verdict.
+Next: the **independent verifier** (Phase 3) — the core — which turns that `WARN` into a PASS/FAIL by
+an orthogonal path. Nothing is "done" until it returns a verdict.
 
 ## Try the warehouse
 
@@ -84,6 +90,24 @@ sqlite3 tessera.db "SELECT name FROM sqlite_master WHERE type='table';"
   [PASS] accounting_equation         Assets == Liabilities + Equity + Net income (statements roll up)
 
 verdict: PASS — the books are real
+```
+
+## Ask a question
+
+```bash
+tessera ask "What was consolidated net revenue in 2025?"
+```
+```
+  answer:  5,293,985.00 USD
+  verdict: WARN  (net_revenue (consolidated, 2025) = 5,293,985.00 USD — unverified.)
+
+  executed SQL:
+    SELECT COALESCE(SUM((l.credit_func_minor - l.debit_func_minor)), 0) AS minor
+    FROM fact_journal_line l JOIN fact_journal_entry e ON ... JOIN dim_period p ON ...
+    WHERE a.statement_line IN ('revenue') AND e.status IN ('posted')
+      AND e.is_intercompany = 0 AND p.fiscal_year = 2025
+
+  NB: this number is NOT yet independently verified — that is the Phase 3 verifier's job.
 ```
 
 ## Develop

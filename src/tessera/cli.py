@@ -42,6 +42,31 @@ def _dataset_build(out: str, seed: int) -> int:
     return 0
 
 
+def _ask(question: str, seed: int, db: str | None) -> int:
+    from .agent import answer_question
+    from .ledger import GeneratorConfig, generate
+    from .ledger.warehouse import materialize_sqlite
+    from .semantic import load_metrics
+
+    wh = generate(GeneratorConfig(seed=seed))
+    conn = materialize_sqlite(wh, db or ":memory:")
+    try:
+        report = answer_question(question, conn, load_metrics(), wh.entities)
+    finally:
+        conn.close()
+
+    print(f"Q: {question}\n")
+    if report.answer is not None:
+        print(f"  answer:  {report.answer}")
+    print(f"  verdict: {report.verdict.value.upper()}  ({report.summary})")
+    if report.executed_sql:
+        print("\n  executed SQL:")
+        for line in report.executed_sql.splitlines():
+            print(f"    {line}")
+    print("\n  NB: this number is NOT yet independently verified — that is the Phase 3 verifier's job.")
+    return 0
+
+
 def _dataset_verify(seed: int) -> int:
     from .ledger import GeneratorConfig, generate
     from .ledger.controls import check_invariants
@@ -67,6 +92,11 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("version", help="Print the Tessera version.")
     sub.add_parser("doctor", help="Check the local environment is healthy.")
 
+    ask = sub.add_parser("ask", help="Ask a finance question (answered, not yet verified).")
+    ask.add_argument("question", help="The natural-language question, in quotes.")
+    ask.add_argument("--seed", type=int, default=20260626, help="Generator seed.")
+    ask.add_argument("--db", default=None, help="Existing sqlite warehouse (default: in-memory).")
+
     ds = sub.add_parser("dataset", help="Build or verify the governed GL warehouse.")
     ds_sub = ds.add_subparsers(dest="action")
     build = ds_sub.add_parser("build", help="Generate the warehouse into a sqlite file.")
@@ -82,6 +112,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "doctor":
         return _doctor()
+    if args.command == "ask":
+        return _ask(args.question, args.seed, args.db)
     if args.command == "dataset":
         if args.action == "build":
             return _dataset_build(args.out, args.seed)

@@ -31,10 +31,14 @@ build plan, demo script): **`~/Resume/FDE_Prep/02_TESSERA_FLAGSHIP.md`**.
 - **Verification-first:** nothing is "done" until the verifier returns a verdict and the gate (ruff +
   mypy + pytest, the way CI runs them) is green.
 
-## Hosting (free)
+## Hosting (free) — LOCKED: Vercel + Google Cloud Run
 
-- **Frontend** (minimal Next.js) → **Cloudflare Pages** at `tessera.amitinfotech.net`.
-- **Backend + Postgres + verifier** → **Oracle Cloud Always Free** ARM VM (persistent, free), fronted
-  by Cloudflare DNS/TLS at `api.tessera.amitinfotech.net`. Doubles as live proof of the self-hosted
-  story. Alternative: Google Cloud Run (scale-to-zero) + Neon free Postgres.
+- **Frontend** (minimal Next.js) → **Vercel** (Hobby) at `tessera.amitinfotech.net` (CNAME via the
+  existing Cloudflare DNS for `amitinfotech.net`).
+- **Backend** (FastAPI + verifier + receipts) → **Google Cloud Run** (scale-to-zero, free tier) at
+  `api.tessera.amitinfotech.net`. No external DB: the warehouse is deterministically generated, so the
+  container rebuilds the sqlite file on boot. Cloud inference keys live in Cloud Run secret env, never
+  in the repo.
+- The self-hosted/air-gapped story is told by the **air-gapped target** (k3s/Podman + Ollama), not the
+  public demo. Hosting setup is deferred to Phase 6.
 - No PyPI / Hugging Face for this project (per owner).
