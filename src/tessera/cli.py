@@ -232,6 +232,8 @@ def main(argv: list[str] | None = None) -> int:
     bench = sub.add_parser("bench", help="Benchmark the cost cascade vs an always-strong baseline.")
     bench.add_argument("--seed", type=int, default=20260626, help="Generator seed.")
 
+    sub.add_parser("mcp", help="Run the MCP server over stdio (needs the 'mcp' extra).")
+
     serve = sub.add_parser("serve", help="Run the REST API (needs the 'api' extra).")
     serve.add_argument("--host", default=os.environ.get("TESSERA_BIND_HOST", "127.0.0.1"),
                        help="Bind host. Non-loopback requires TESSERA_API_TOKEN (fail closed).")
@@ -266,6 +268,15 @@ def main(argv: list[str] | None = None) -> int:
         return _bench(args.seed)
     if args.command == "serve":
         return _serve(args.host, args.port, args.seed)
+    if args.command == "mcp":
+        try:
+            from .mcp import main as mcp_main
+        except ImportError:
+            print("the MCP server needs the 'mcp' extra: pip install 'tessera-analytics[mcp]'",
+                  file=sys.stderr)
+            return 1
+        mcp_main()
+        return 0
     if args.command == "key":
         return _key()
     if args.command == "verify":

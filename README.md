@@ -88,8 +88,11 @@ independent verifier is not satisfied), building on
   `TESSERA_API_TOKEN` refuses to start; with a token, every request needs a constant-time-checked
   bearer; the API takes natural-language questions, never SQL. One image runs **Cloud Run** (cloud
   demo) or fully **air-gapped** (Compose/k3s + Ollama, no egress). See [`deploy/`](deploy/README.md).
-
-Next: the minimal React/Next UI + MCP server (Phase 7).
+- **Phase 7 ✅** — the **minimal UI** ([`web/`](web/README.md), Next.js, 3 components: ask /
+  answer+verdict / evidence drawer; reuses the "Warm Paper" design system) and an **MCP server**
+  (`tessera.mcp`) exposing `tessera_ask` / `tessera_verify`. The browser only calls a same-origin
+  proxy, so the API token never reaches the client. UI graded **PASS** by AgentVision (desktop +
+  mobile, zero defects).
 
 ## Try the warehouse
 
