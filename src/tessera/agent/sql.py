@@ -85,7 +85,7 @@ def build_sql(metric: Metric, scope: Scope) -> tuple[str, dict[str, object]]:
     return sql, params
 
 
-def _inline_for_display(sql: str, params: dict[str, object]) -> str:
+def inline_params(sql: str, params: dict[str, object]) -> str:
     """A copy of the SQL with params substituted — for *display only*, never executed."""
     out = sql
     for key in sorted(params, key=len, reverse=True):
@@ -113,4 +113,4 @@ def execute_metric(
     sql, params = build_sql(metric, scope)
     row = conn.execute(sql, params).fetchone()
     minor = row[0] if row is not None else 0
-    return from_minor(int(minor)), _inline_for_display(sql, params)
+    return from_minor(int(minor)), inline_params(sql, params)

@@ -64,12 +64,17 @@ independent verifier is not satisfied), building on
 - **Phase 2 ✅** — the NL→SQL agent (`tessera.agent`). A plain-English question resolves to a
   *certified* metric + scope, generates **parameterized** SQL (structure from the trusted semantic
   layer, values bound as params — never string-built), executes it against the read-only warehouse,
-  and returns the number with the SQL. The answer comes back **`WARN` / unverified on purpose**: the
-  agent answers, it does not certify. A question outside the semantic layer returns an honest `WARN`,
+  and returns the number with the SQL. A question outside the semantic layer returns an honest `WARN`,
   never a guessed number.
+- **Phase 3 ✅** — the **independent verifier** (`tessera.verifier`), the core. It recomputes the
+  answer by an **orthogonal path** (rolls the certified metric up directly from the warehouse — a
+  different engine than the agent's SQL, and never derived from it), reconciles the claim against it,
+  and on a divergence **diagnoses which of the 8 failure classes** produced the wrong number, showing
+  both figures. Verified: it catches **8/8** injected failure classes and passes correct answers with
+  no false positives.
 
-Next: the **independent verifier** (Phase 3) — the core — which turns that `WARN` into a PASS/FAIL by
-an orthogonal path. Nothing is "done" until it returns a verdict.
+Next: the **signed receipt** (Phase 4) — bind the verdict + SQL + answer into an Ed25519 receipt an
+auditor can verify offline. Nothing is "done" until it returns a verdict.
 
 ## Try the warehouse
 
@@ -107,8 +112,28 @@ tessera ask "What was consolidated net revenue in 2025?"
     WHERE a.statement_line IN ('revenue') AND e.status IN ('posted')
       AND e.is_intercompany = 0 AND p.fiscal_year = 2025
 
-  NB: this number is NOT yet independently verified — that is the Phase 3 verifier's job.
+  verdict: PASS  (net_revenue = 5,293,985.00 USD reconciles to the certified metric.)
 ```
+
+## Catch a wrong number
+
+The verifier is independent — it never re-runs the model's SQL to "check" it. Inject any of the 8
+failure classes and watch it get caught, by name, with both numbers:
+
+```bash
+tessera ask "What was consolidated net revenue in 2025?" --inject intercompany_double_count
+```
+```
+  answer:  5,439,001.00 USD
+  verdict: FAIL  (claimed 5,439,001.00 USD vs certified 5,293,985.00 USD (off by 145,016.00 USD).)
+    - [intercompany_double_count] Does not reconcile: claimed 5,439,001.00 USD equals the value
+      produced by 'intercompany_double_count'. The certified net_revenue is 5,293,985.00 USD.
+```
+
+The injected SQL is a genuinely different query (it drops the `is_intercompany = 0` elimination); the
+verifier recomputes the truth orthogonally and names the mistake. The eight classes: `wrong_period_grain`,
+`missing_entity_filter`, `debit_credit_sign_flip`, `intercompany_double_count`, `draft_or_reversed_entries`,
+`wrong_statement_line_rollup`, `fx_mixing`, `asof_vs_ptd`.
 
 ## Develop
 
