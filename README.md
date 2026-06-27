@@ -2,6 +2,8 @@
 
 **Attested natural-language analytics for regulated finance.**
 
+**[Live demo](https://tessera.amitinfotech.net)** · **[Docs](https://amitpatole.github.io/tessera/)** · [Why this isn't another chatbot](https://amitpatole.github.io/tessera/why/)
+
 Ask a finance question in plain English over a governed General-Ledger warehouse and get back not
 just a number — but the evidence it is right: the exact executed SQL, an **independent** runtime
 verdict, and a signed, auditor-verifiable receipt.
