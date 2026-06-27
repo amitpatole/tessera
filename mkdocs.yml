@@ -1,0 +1,59 @@
+site_name: Tessera
+site_description: >-
+  Attested NL→analytics for regulated finance — ask in plain English; get the number, the SQL, an
+  independent runtime verdict, and a signed receipt you verify offline.
+site_url: https://amitpatole.github.io/tessera/
+repo_url: https://github.com/amitpatole/tessera
+repo_name: amitpatole/tessera
+copyright: MIT © Amit Patole
+docs_dir: docs
+
+theme:
+  name: material
+  palette:
+    scheme: default          # Warm Paper — light, editorial
+  font:
+    text: Inter
+    code: JetBrains Mono
+  icon:
+    repo: fontawesome/brands/github
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.tracking
+    - navigation.footer
+    - content.code.copy
+    - toc.follow
+    - search.suggest
+    - search.highlight
+
+extra_css:
+  - stylesheets/extra.css
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+
+plugins:
+  - search
+
+nav:
+  - Home: index.md
+  - Quickstart: quickstart.md
+  - How it works: how-it-works.md
+  - The 8 failure classes: failure-classes.md
+  - Signed receipts & trust: receipts.md
+  - Cost-cascade routing: cost-routing.md
+  - Deploy: deploy.md
+  - The demo: demo.md
+  - Why I built this: why.md

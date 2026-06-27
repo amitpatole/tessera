@@ -1,0 +1,118 @@
+/* ============================================================================
+   "Warm Paper" · MkDocs Material override — Tessera (accent = ledger teal)
+   Light-first, printed-document calm. No gradients, no glows. One accent.
+   ============================================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&display=swap');
+
+:root {
+  --wp-bg:        #f7f5f1;
+  --wp-surface:   #fffdf9;
+  --wp-panel:     #efece4;
+  --wp-ink:       #1b1a17;
+  --wp-ink-muted: #5c594f;   /* darkened for AA on the warm bg (AgentVision-verified) */
+  --wp-ink-faint: #5c594f;
+  --wp-rule:      #e3ded4;
+
+  /* ---- Tessera accent — ledger teal ---- */
+  --wp-accent:     #4f8a7b;
+  --wp-accent-ink: #356b5d;
+
+  --wp-serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+}
+
+[data-md-color-scheme="default"] {
+  --md-default-bg-color:            var(--wp-bg);
+  --md-default-fg-color:            var(--wp-ink);
+  --md-default-fg-color--light:     var(--wp-ink-muted);
+  --md-default-fg-color--lighter:   var(--wp-ink-muted);
+  --md-default-fg-color--lightest:  var(--wp-rule);
+
+  --md-primary-fg-color:            var(--wp-bg);
+  --md-primary-fg-color--light:     var(--wp-bg);
+  --md-primary-fg-color--dark:      var(--wp-bg);
+  --md-primary-bg-color:            var(--wp-ink);
+  --md-primary-bg-color--light:     var(--wp-ink-muted);
+
+  --md-accent-fg-color:             var(--wp-accent-ink);
+  --md-accent-fg-color--transparent: color-mix(in srgb, var(--wp-accent) 12%, transparent);
+
+  --md-typeset-color:               var(--wp-ink);
+  --md-typeset-a-color:             var(--wp-accent-ink);
+
+  --md-code-bg-color:               var(--wp-panel);
+  --md-code-fg-color:               var(--wp-ink);
+  --md-footer-bg-color:             var(--wp-surface);
+  --md-footer-bg-color--dark:       var(--wp-surface);
+  --md-footer-fg-color:             var(--wp-ink-muted);
+  --md-footer-fg-color--light:      var(--wp-ink-muted);
+
+  color-scheme: light;
+}
+
+.md-header { color: var(--wp-ink); border-bottom: 1px solid var(--wp-rule); box-shadow: none; }
+.md-header--shadow { box-shadow: none; }
+.md-tabs { background: var(--wp-bg); color: var(--wp-ink); border-bottom: 1px solid var(--wp-rule); }
+
+.md-typeset h1, .md-typeset h2, .md-typeset h3,
+.md-content__inner > h1, .md-nav__title {
+  font-family: var(--wp-serif); letter-spacing: -.01em; font-weight: 600; color: var(--wp-ink);
+}
+.md-typeset h1 { padding-bottom: .35rem; border-bottom: 1px solid var(--wp-rule); position: relative; }
+.md-typeset h1::after {
+  content: ""; position: absolute; left: 0; bottom: -1px;
+  width: 2.2rem; height: 1px; background: var(--wp-accent);
+}
+
+.md-typeset a { color: var(--wp-accent-ink); text-decoration: none; }
+.md-typeset a:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+.md-typeset pre > code, .md-typeset .highlight { border-radius: 8px; }
+.md-typeset pre { border: 1px solid var(--wp-rule); border-radius: 8px; }
+.md-typeset code { background: var(--wp-panel); }
+
+.md-typeset table:not([class]) { border: 1px solid var(--wp-rule); border-radius: 8px; overflow: hidden; }
+.md-typeset table:not([class]) th { background: var(--wp-panel); color: var(--wp-ink); font-weight: 600; }
+.md-typeset .admonition, .md-typeset details {
+  border: 1px solid var(--wp-rule); border-left-width: 2px;
+  border-left-color: var(--wp-accent); box-shadow: none; background: var(--wp-surface);
+}
+
+.md-typeset .md-button--primary {
+  background: var(--wp-accent-ink); border-color: var(--wp-accent-ink); color: var(--wp-surface);
+}
+.md-typeset .md-button--primary:hover { background: var(--wp-ink); border-color: var(--wp-ink); }
+
+.md-search__form { background: var(--wp-surface); border: 1px solid var(--wp-rule); }
+.md-search__input::placeholder { color: var(--wp-ink-faint); }
+
+.md-footer-meta { border-top: 1px solid var(--wp-rule); }
+.md-footer-meta__inner::after {
+  content: "— amitpatole"; font-family: var(--wp-serif); font-style: italic; font-size: .8rem;
+  color: var(--wp-accent-ink); margin-left: auto; padding: 0 .6rem; align-self: center; white-space: nowrap;
+}
+
+.md-grid { max-width: 64rem; }
+.md-typeset { line-height: 1.62; }
+
+/* ---- AA fixes (verified with AgentVision) ---- */
+
+/* Footer is light paper here, so its default white text is invisible — force ink. */
+.md-footer, .md-footer-meta { background: var(--wp-surface); color: var(--wp-ink); }
+.md-footer__inner, .md-footer__title, .md-footer__direction,
+.md-footer-meta, .md-footer-meta__inner, .md-copyright, .md-copyright__highlight,
+.md-footer-meta a, .md-footer a { color: var(--wp-ink-muted) !important; }
+.md-footer__button { color: var(--wp-ink-muted); }
+
+/* Monochrome code — Warm Paper restraint, and guarantees AA on the code panel. */
+.md-typeset .highlight span { color: var(--wp-ink) !important; }
+.md-typeset .highlight .c, .md-typeset .highlight .c1, .md-typeset .highlight .cm,
+.md-typeset .highlight .cp { color: var(--wp-ink-muted) !important; font-style: italic; }
+
+/* Search text + placeholder: ink, AA placeholder. */
+.md-search__input { color: var(--wp-ink); }
+.md-search__input::placeholder { color: var(--wp-ink-muted); }
+.md-search__icon { color: var(--wp-ink-muted); }
+
+/* TOC / nav titles: ink. */
+.md-nav__title, .md-nav__link { color: var(--wp-ink); }
+.md-nav__link--active, .md-nav__link:focus, .md-nav__link:hover { color: var(--wp-accent-ink); }
