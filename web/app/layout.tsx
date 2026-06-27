@@ -2,9 +2,15 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Tessera — attested analytics",
+  title: "Tessera — every number, proven",
   description:
-    "Ask a finance question in plain English. Get the number, the SQL, an independent verdict, and a signed receipt.",
+    "Attested NL→analytics for regulated finance. Ask in plain English; get the number, the SQL, an independent verdict, and a signed receipt you verify offline. Deploy in your VPC or fully air-gapped.",
+  openGraph: {
+    title: "Tessera — every number, proven",
+    description:
+      "The trust layer for finance analytics: an independent per-answer verdict and a signed, auditor-verifiable receipt.",
+    images: ["/og.png"],
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -22,6 +28,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {children}
         <footer className="footer">
           <span className="mark">— amitpatole</span>
+          <nav>
+            <a href="https://github.com/amitpatole/tessera">GitHub</a>
+            <a href="#try">Try it</a>
+            <a href="#demo">Demo</a>
+          </nav>
         </footer>
       </body>
     </html>
