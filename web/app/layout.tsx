@@ -9,6 +9,16 @@ export const metadata: Metadata = {
     title: "Tessera — every number, proven",
     description:
       "The trust layer for finance analytics: an independent per-answer verdict and a signed, auditor-verifiable receipt.",
+    url: "https://tessera.amitinfotech.net",
+    siteName: "Tessera",
+    images: [{ url: "/og.png", width: 1280, height: 640 }],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Tessera — every number, proven",
+    description:
+      "Not a chatbot — the trust layer underneath it. Independent per-answer verdict + signed receipt.",
     images: ["/og.png"],
   },
 };
