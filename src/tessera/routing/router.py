@@ -77,7 +77,19 @@ def cascade(
     accepted_tier: str | None = None
 
     for tier in ordered:
-        value, sql = tier.plan(conn, registry, metric_name, scope)
+        try:
+            value, sql = tier.plan(question, conn, registry, warehouse.entities, metric_name, scope)
+        except Exception as exc:  # noqa: BLE001 - a model/resolution failure means: escalate
+            tokens = _estimate_tokens(question, "")
+            cost = round(tier.price_per_1k * tokens / 1000, 8)
+            total_cost = round(total_cost + cost, 8)
+            attempts.append(Attempt(tier=tier.name, verdict="fail", answer=None,
+                                    est_tokens=tokens, cost_usd=cost))
+            final = LedgerReport(
+                verdict=Verdict.FAIL, question=question,
+                summary=f"{tier.name} could not produce a verifiable answer ({exc}).",
+            )
+            continue
         tokens = _estimate_tokens(question, sql)
         cost = round(tier.price_per_1k * tokens / 1000, 8)
         total_cost = round(total_cost + cost, 8)

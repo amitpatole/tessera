@@ -10,6 +10,7 @@ the cloud deploy phase and lazy-import their SDKs.
 from __future__ import annotations
 
 import json
+import os
 import urllib.request
 from typing import Protocol, runtime_checkable
 
@@ -38,3 +39,30 @@ class OllamaClient:
         with urllib.request.urlopen(req, timeout=self.timeout) as resp:  # noqa: S310 - fixed localhost
             data = json.loads(resp.read().decode())
         return str(data.get("response", ""))
+
+
+class OpenAIClient:
+    """A cloud model via the OpenAI chat-completions API (key from env, no third-party SDK)."""
+
+    def __init__(self, model: str = "gpt-4o-mini", api_key: str | None = None,
+                 base_url: str = "https://api.openai.com/v1", timeout: float = 30.0) -> None:
+        self.model = model
+        self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
+        self.base_url = base_url.rstrip("/")
+        self.timeout = timeout
+
+    def complete(self, prompt: str) -> str:
+        if not self.api_key:
+            raise RuntimeError("OPENAI_API_KEY is not set")
+        payload = json.dumps({
+            "model": self.model,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0,
+        }).encode()
+        req = urllib.request.Request(
+            f"{self.base_url}/chat/completions", data=payload,
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {self.api_key}"},
+        )
+        with urllib.request.urlopen(req, timeout=self.timeout) as resp:  # noqa: S310 - fixed host
+            data = json.loads(resp.read().decode())
+        return str(data["choices"][0]["message"]["content"])

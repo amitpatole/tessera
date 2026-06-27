@@ -107,10 +107,11 @@ def create_app(
         conn = _ro_conn(st.db_path)
         try:
             if req.route:
-                from ..routing import cascade, default_tiers
+                from ..routing import cascade, cascade_tiers, default_tiers
 
+                tiers = cascade_tiers() if os.environ.get("TESSERA_REAL_MODELS") else default_tiers()
                 routed = cascade(question=req.question, metric_name=spec.metric, scope=spec.scope,
-                                 conn=conn, warehouse=st.wh, registry=st.metrics, tiers=default_tiers())
+                                 conn=conn, warehouse=st.wh, registry=st.metrics, tiers=tiers)
                 report = routed.final_report
                 routing = RoutingOut(
                     accepted_tier=routed.accepted_tier, escalations=routed.escalations,

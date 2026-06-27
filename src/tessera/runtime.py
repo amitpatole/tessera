@@ -42,7 +42,8 @@ class Runtime:
     def close(self) -> None:
         shutil.rmtree(self._dir, ignore_errors=True)
 
-    def ask(self, question: str, *, route: bool = False, sign: bool = False) -> dict[str, Any]:
+    def ask(self, question: str, *, route: bool = False, sign: bool = False,
+            real: bool = False) -> dict[str, Any]:
         try:
             spec = resolve_question(question, self.metrics, self.warehouse.entities)
         except ResolutionError as exc:
@@ -54,11 +55,15 @@ class Runtime:
         conn = _ro_conn(self.db_path)
         try:
             if route:
-                from .routing import cascade, default_tiers
+                import os
 
+                from .routing import cascade, cascade_tiers, default_tiers
+
+                use_real = real or bool(os.environ.get("TESSERA_REAL_MODELS"))
+                tiers = cascade_tiers() if use_real else default_tiers()
                 routed = cascade(question=question, metric_name=spec.metric, scope=spec.scope,
                                  conn=conn, warehouse=self.warehouse, registry=self.metrics,
-                                 tiers=default_tiers())
+                                 tiers=tiers)
                 report = routed.final_report
                 routing = {"accepted_tier": routed.accepted_tier, "escalations": routed.escalations,
                            "total_cost_usd": routed.total_cost_usd,

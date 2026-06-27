@@ -9,7 +9,15 @@ from __future__ import annotations
 
 from .bench import BenchmarkResult, run_benchmark
 from .router import Attempt, RoutingResult, cascade
-from .tiers import CertifiedTier, HeuristicTier, ModelTier, default_tiers
+from .tiers import (
+    CertifiedTier,
+    HeuristicTier,
+    LLMTier,
+    ModelTier,
+    cascade_tiers,
+    default_tiers,
+    real_tiers_available,
+)
 
 __all__ = [
     "cascade",
@@ -20,5 +28,8 @@ __all__ = [
     "ModelTier",
     "CertifiedTier",
     "HeuristicTier",
+    "LLMTier",
     "default_tiers",
+    "cascade_tiers",
+    "real_tiers_available",
 ]

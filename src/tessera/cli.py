@@ -104,10 +104,10 @@ def _serve(host: str, port: int, seed: int) -> int:
     return 0
 
 
-def _bench(seed: int) -> int:
-    from .routing import run_benchmark
+def _bench(seed: int, real: bool) -> int:
+    from .routing import cascade_tiers, run_benchmark
 
-    bench = run_benchmark(seed=seed)
+    bench = run_benchmark(seed=seed, tiers=cascade_tiers() if real else None)
     print(f"Cost-cascade benchmark ({bench.n} questions, seed={seed})\n")
     for r in bench.results:
         path = " → ".join(f"{a.tier}:{a.verdict}" for a in r.attempts)
@@ -125,7 +125,7 @@ def _bench(seed: int) -> int:
 
 
 def _ask(question: str, seed: int, db: str | None, inject: str | None, receipt_path: str | None,
-         route: bool) -> int:
+         route: bool, real: bool) -> int:
     from .agent.resolver import ResolutionError, resolve_question
     from .agent.sql import execute_metric
     from .contract import FailureClass
@@ -147,10 +147,13 @@ def _ask(question: str, seed: int, db: str | None, inject: str | None, receipt_p
             return 0
 
         if route:
-            from .routing import cascade, default_tiers
+            from .routing import cascade, cascade_tiers, default_tiers, real_tiers_available
 
+            tiers = cascade_tiers() if real else default_tiers()
+            if real:
+                print(f"  [models: {real_tiers_available() or 'none configured → deterministic'}]")
             routed = cascade(question=question, metric_name=spec.metric, scope=spec.scope,
-                             conn=conn, warehouse=wh, registry=metrics, tiers=default_tiers())
+                             conn=conn, warehouse=wh, registry=metrics, tiers=tiers)
             _route_view(routed)
             return 0
 
@@ -228,9 +231,12 @@ def main(argv: list[str] | None = None) -> int:
     ask.add_argument("--receipt", default=None, help="Write a signed receipt to this path.")
     ask.add_argument("--route", action="store_true",
                      help="Run the cost cascade: cheap tier first, escalate only if it fails verification.")
+    ask.add_argument("--real", action="store_true",
+                     help="Use real model tiers (OpenAI key, or TESSERA_OLLAMA_MODEL) instead of the simulation.")
 
     bench = sub.add_parser("bench", help="Benchmark the cost cascade vs an always-strong baseline.")
     bench.add_argument("--seed", type=int, default=20260626, help="Generator seed.")
+    bench.add_argument("--real", action="store_true", help="Benchmark with real model tiers if configured.")
 
     sub.add_parser("mcp", help="Run the MCP server over stdio (needs the 'mcp' extra).")
 
@@ -263,9 +269,10 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "doctor":
         return _doctor()
     if args.command == "ask":
-        return _ask(args.question, args.seed, args.db, args.inject, args.receipt, args.route)
+        return _ask(args.question, args.seed, args.db, args.inject, args.receipt, args.route,
+                    args.real)
     if args.command == "bench":
-        return _bench(args.seed)
+        return _bench(args.seed, args.real)
     if args.command == "serve":
         return _serve(args.host, args.port, args.seed)
     if args.command == "mcp":
