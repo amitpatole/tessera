@@ -49,9 +49,17 @@ answer. Without a model configured, `--real` falls back to the deterministic sim
 offline demo stay reproducible. On the server, set `TESSERA_REAL_MODELS=1` (plus the model env) to use
 real tiers for `/ask?route=true`.
 
+- **PyTorch (in-process)** — a real `torch.nn.Module` loaded with 🤗 Transformers, generating on
+  CPU/GPU (`TESSERA_TORCH_MODEL`; needs the `pytorch` extra). The most literally PyTorch-native tier —
+  see [Attested inference on PyTorch](pytorch.md).
+- **vLLM** — a model served by [vLLM](https://github.com/vllm-project/vllm) (a PyTorch Foundation
+  project) over its OpenAI-compatible API (`TESSERA_VLLM_MODEL`, `TESSERA_VLLM_BASE`).
 - **Ollama** — local, air-gapped, no egress (`TESSERA_OLLAMA_MODEL`).
 - **OpenAI** — cloud (`OPENAI_API_KEY`; `TESSERA_OPENAI_CHEAP` / `TESSERA_OPENAI_STRONG`).
 - **AWS Bedrock** — same interface, integration-ready.
+
+When several are configured, Tessera prefers the PyTorch-native tiers first (`torch` → `vllm` →
+`openai` → `ollama`) so a local model keeps the air-gapped, no-egress story.
 
 The cross-workload optimization that *chooses* the cascade builds on
 [*Quantum-Enhanced LLM Cascade Routing: A QAOA Approach to Cost-Optimal Model Selection*](https://doi.org/10.5281/zenodo.19253980);

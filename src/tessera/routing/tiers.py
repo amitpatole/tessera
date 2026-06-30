@@ -113,7 +113,13 @@ def default_tiers() -> list[ModelTier]:
 
 
 def real_tiers_available() -> str | None:
-    """Which real backend is configured: 'openai', 'ollama', or None (→ use deterministic tiers)."""
+    """Which real backend is configured, in priority order: 'torch', 'vllm', 'openai', 'ollama', or
+    None (→ use the deterministic simulation). The PyTorch-native tiers come first so a configured
+    local model is preferred for the air-gapped, no-egress story."""
+    if os.environ.get("TESSERA_TORCH_MODEL"):
+        return "torch"
+    if os.environ.get("TESSERA_VLLM_MODEL"):
+        return "vllm"
     if os.environ.get("OPENAI_API_KEY"):
         return "openai"
     if os.environ.get("TESSERA_OLLAMA_MODEL"):
@@ -122,9 +128,36 @@ def real_tiers_available() -> str | None:
 
 
 def cascade_tiers(prefer_real: bool = True) -> list[ModelTier]:
-    """Build the cascade: real model tiers when configured (OpenAI key, or TESSERA_OLLAMA_MODEL),
-    otherwise the deterministic simulation. With OpenAI: cheap=gpt-4o-mini, strong=gpt-4o."""
+    """Build the cascade: real model tiers when configured, otherwise the deterministic simulation.
+
+    Backends (cheap tier → reliable escalation):
+
+    - **torch** (``TESSERA_TORCH_MODEL``) — a model run in-process on PyTorch via Transformers; the
+      certified reference is the escalation target. The most literally PyTorch-native cascade.
+    - **vllm** (``TESSERA_VLLM_MODEL``) — a model served by vLLM (PyTorch under the hood) over its
+      OpenAI-compatible API; certified reference escalation.
+    - **openai** (``OPENAI_API_KEY``) — cheap=gpt-4o-mini → strong=gpt-4o.
+    - **ollama** (``TESSERA_OLLAMA_MODEL``) — a local Ollama model → certified reference escalation.
+    """
     backend = real_tiers_available() if prefer_real else None
+    if backend == "torch":
+        from ..agent.llm import TorchTransformersClient
+
+        model = os.environ["TESSERA_TORCH_MODEL"]
+        # One in-process PyTorch model + the certified reference as the reliable escalation target.
+        return [
+            LLMTier(f"torch:{model}", 0.0002, TorchTransformersClient(model=model)),
+            CertifiedTier(),
+        ]
+    if backend == "vllm":
+        from ..agent.llm import VLLMClient
+
+        model = os.environ["TESSERA_VLLM_MODEL"]
+        base = os.environ.get("TESSERA_VLLM_BASE", "http://127.0.0.1:8000/v1")
+        return [
+            LLMTier(f"vllm:{model}", 0.0002, VLLMClient(model=model, base_url=base)),
+            CertifiedTier(),
+        ]
     if backend == "openai":
         from ..agent.llm import OpenAIClient
 

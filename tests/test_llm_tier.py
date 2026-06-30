@@ -96,3 +96,45 @@ def test_openai_and_ollama_clients_construct():
 
     assert OllamaClient(model="x").model == "x"
     assert OpenAIClient(model="gpt-4o-mini", api_key="sk-test").model == "gpt-4o-mini"
+
+
+def test_vllm_client_is_openai_compatible_with_placeholder_key():
+    from tessera.agent.llm import OpenAIClient, VLLMClient
+
+    c = VLLMClient(model="Qwen/Qwen2.5-0.5B-Instruct", base_url="http://127.0.0.1:8000/v1")
+    assert isinstance(c, OpenAIClient)  # reuses the OpenAI chat-completions wire format
+    assert c.model == "Qwen/Qwen2.5-0.5B-Instruct"
+    assert c.api_key == "EMPTY"  # self-hosted vLLM ignores the key; the guard still passes
+
+
+def test_torch_client_constructs_without_importing_torch():
+    # Construction must be cheap and lazy: no torch import, no weights loaded until complete().
+    from tessera.agent.llm import TorchTransformersClient
+
+    c = TorchTransformersClient(model="HuggingFaceTB/SmolLM2-135M-Instruct")
+    assert c.model_name == "HuggingFaceTB/SmolLM2-135M-Instruct"
+    assert c._model is None and c._tok is None  # nothing loaded yet
+
+
+def test_backend_selection_prefers_pytorch_native(monkeypatch):
+    from tessera.routing.tiers import cascade_tiers, real_tiers_available
+
+    for var in ("TESSERA_TORCH_MODEL", "TESSERA_VLLM_MODEL", "OPENAI_API_KEY",
+                "TESSERA_OLLAMA_MODEL"):
+        monkeypatch.delenv(var, raising=False)
+
+    # No backend configured → deterministic simulation (CI-safe).
+    assert real_tiers_available() is None
+    assert [t.name for t in cascade_tiers()] == ["cheap", "strong"]
+
+    # vLLM configured → vLLM cheap tier + certified reference (tiers build without loading anything).
+    monkeypatch.setenv("TESSERA_VLLM_MODEL", "Qwen/Qwen2.5-0.5B-Instruct")
+    assert real_tiers_available() == "vllm"
+    names = [t.name for t in cascade_tiers()]
+    assert names[0].startswith("vllm:") and names[1] == "strong"
+
+    # In-process torch wins the priority order when both are set.
+    monkeypatch.setenv("TESSERA_TORCH_MODEL", "HuggingFaceTB/SmolLM2-135M-Instruct")
+    assert real_tiers_available() == "torch"
+    names = [t.name for t in cascade_tiers()]
+    assert names[0].startswith("torch:") and names[1] == "strong"

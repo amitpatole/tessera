@@ -54,6 +54,7 @@ nav:
   - The 8 failure classes: failure-classes.md
   - Signed receipts & trust: receipts.md
   - Cost-cascade routing: cost-routing.md
+  - Attested inference on PyTorch: pytorch.md
   - Deploy: deploy.md
   - The demo: demo.md
   - Why I built this: why.md
