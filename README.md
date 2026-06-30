@@ -123,7 +123,10 @@ The same build runs two ways:
 
 Model selection is a verdict-driven cost cascade (cheap model first; escalate only when the
 independent verifier is not satisfied), building on
-[*Quantum-Enhanced LLM Cascade Routing*](https://doi.org/10.5281/zenodo.19253980).
+[*Quantum-Enhanced LLM Cascade Routing*](https://doi.org/10.5281/zenodo.19253980). The cheap tier can
+be a **real PyTorch model** — in-process (`torch.nn.Module` via 🤗 Transformers) or served by vLLM —
+which is exactly the cheap-but-fallible model the verifier makes safe to put first; see
+[Attested inference on PyTorch](https://amitpatole.github.io/tessera/pytorch/).
 
 ## Status
 

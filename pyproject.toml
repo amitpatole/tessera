@@ -32,6 +32,8 @@ dependencies = [
 api = ["fastapi>=0.115", "uvicorn[standard]>=0.30"]
 mcp = ["mcp>=1.2"]
 llm = ["langgraph>=0.2", "langchain-core>=0.3"]
+# A real, in-process PyTorch tier (torch.nn.Module + Transformers generate); lazy-imported.
+pytorch = ["torch>=2.2", "transformers>=4.44", "accelerate>=0.30"]
 crypto = ["cryptography>=43"]
 # dev pulls the runtime extras the gate must exercise (signing + API) so CI tests them.
 dev = ["pytest>=8.0", "ruff>=0.5", "mypy>=1.10", "cryptography>=43", "fastapi>=0.115", "httpx>=0.27"]
@@ -57,4 +59,11 @@ ignore = ["E501", "UP042"]
 
 [tool.mypy]
 python_version = "3.11"
+ignore_missing_imports = true
+
+# Never type-check heavy ML libs (only present behind the pytorch extra). Their stubs target newer
+# Python than our floor and would fail parsing; we use them through Any anyway.
+[[tool.mypy.overrides]]
+module = ["torch.*", "transformers.*", "numpy.*", "accelerate.*"]
+follow_imports = "skip"
 ignore_missing_imports = true
